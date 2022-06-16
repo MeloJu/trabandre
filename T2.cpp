@@ -8,23 +8,23 @@
 using namespace std;
 
 typedef struct Ocorrencia{//struct Verde.
-    int arquivo; //posição do arquivo na lista de arquivos processados.
-    //qtdOcorrencias é o size do vector <int> linhas.
+    int arquivo; //posiÃ§Ã£o do arquivo na lista de arquivos processados.
+    //qtdOcorrencias Ã© o size do vector <int> linhas.
     vector <int> linhas; //linhas onde foram encontrada.
-    //ponteiro para a próxima ocorrência substituído pelo vector <Ocorrencias> no struct palavra.
+    //ponteiro para a prÃ³xima ocorrÃªncia substituÃ­do pelo vector <Ocorrencias> no struct palavra.
 }Ocorrencia;
 
 typedef struct Palavras{//struct Vermelho.
     string letras; //a palavra
-    //qtdOcorrencias é o size do vector <Ocorrencias>
+    //qtdOcorrencias Ã© o size do vector <Ocorrencias>
     vector <Ocorrencia> ocorrencias; //vetor com os arquivos onde a palavra foi lida.
     //ponteiro substituido pelo vector <Palavras> no struct Indice.
 }Palavras;
 
 typedef struct Indice{ //struct Amarelo.
-    //qtdArquivos é o size do vector <Arquivo>
+    //qtdArquivos Ã© o size do vector <Arquivo>
     vector <string> arquivosLidos; //vetor com o nome dos arquivos lidos //struct Roxo.
-    //qtdPalavras é o size do vector <Palavras>
+    //qtdPalavras Ã© o size do vector <Palavras>
     vector <Palavras> palavras; //vetor contendo as todas as palavras lidas.
 }Indice;
 
@@ -96,7 +96,7 @@ void ProcessaLinha(Indice &ind,string linha,int numL){
      stringstream linhaLida(linha);
      string palavra;
      while(getline(linhaLida,palavra,' ')){
-        palavra=removepun(palavra); ///remove pontuação
+        palavra=removepun(palavra); ///remove pontuaÃ§Ã£o
         if(!palavraexiste(ind,palavra)){ ///se n existir, inserir a nova palavra na lista de palavra do indice
             Ocorrencia aux;
             Palavras pl;
@@ -284,7 +284,7 @@ void MostraIndice(Indice ind){
 
 int Menu(){
     int resp;
-    cout<<"[1] Processar arquvo"<<endl<<"[2] Salvar Indice"<<endl<<"[3] Ler Indice"<<endl<<"[4] Mostrar Indice atual"<<endl<<"[5] Encerrar"<<endl<<"Digite: ";
+    cout<<"[1] Processar arquivo"<<endl<<"[2] Salvar Indice"<<endl<<"[3] Ler Indice"<<endl<<"[4] Mostrar Indice atual"<<endl<<"[5] Encerrar"<<endl<<"Digite: ";
     cin>>resp;
     return resp;
 }
