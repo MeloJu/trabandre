@@ -1,59 +1,85 @@
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <windows.h>
+#include"iostream"
+#include"string"
+#include"vector"
+#include"fstream"
+#include"sstream"
+#include"windows.h"
 
 using namespace std;
 
-struct arquivo{ 
-	int arq//pos do arq na lista de arqs processados
-	vector<int> linhas;//linhas onde a palavra foi encontrada
-};
+typedef struct Ocorrencia{//struct Verde.
+    int arquivo; //posição do arquivo na lista de arquivos processados.
+    //qtdOcorrencias é o size do vector <int> linhas.
+    vector <int> linhas; //linhas onde foram encontrada.
+    //ponteiro para a próxima ocorrência substituído pelo vector <Ocorrencias> no struct palavra.
+}Ocorrencia;
 
-struct palavra{
-	string letras;//a palavra
-	vector<int> oco;//lista contendo informações da ocorrencia de uma palavra em um arq
-};
+typedef struct Palavras{//struct Vermelho.
+    string letras; //a palavra
+    //qtdOcorrencias é o size do vector <Ocorrencias>
+    vector <Ocorrencia> ocorrencias; //vetor com os arquivos onde a palavra foi lida.
+    //ponteiro substituido pelo vector <Palavras> no struct Indice.
+}Palavras;
 
-struct indice{
-	vector<string> arq;//lista contendo os nomes dos arqs de texto ja processados
-	vector<struct palavra> p;//lista contendo todas as palavras encontradas
-};
+typedef struct Indice{ //struct Amarelo.
+    //qtdArquivos é o size do vector <Arquivo>
+    vector <string> arquivosLidos; //vetor com o nome dos arquivos lidos //struct Roxo.
+    //qtdPalavras é o size do vector <Palavras>
+    vector <Palavras> palavras; //vetor contendo as todas as palavras lidas.
+}Indice;
 
-void liberaind(struct indice i){
-	i.arq.clear();
-	for (int k=0; k<i.p.size(); k++){
-		for (int j=0; j<i.p[k].oco.size(); j++)
-		i.p[k].oco[j].linhas.clear();
-	}
-	i.p[k].clear();
+bool palavraexiste(Indice ind,string pl){
+    int i;
+    for(i=0;i<ind.palavras.size();i++){
+        if(ind.palavras[i].letras.compare(pl)==0){
+            return true;
+        }
+    }
+    return false;
 }
 
-void inserepalavra(string pal, int lin, struct indice &ind){
-	//inserir em ordem alfabetica, linha da palavra tem de ser registrada
-	int posicao=0; //posição onde a palavra deve entrar
-	struct palavra pa;
-	pa.oco.push_back(lin);//guarda ocorrencia
-	pa.letras = pal;
-
-    while (posicao < ind.p.size() && (pa.letras > ind.p[posicao].letras)) //se não chegou na posisção correta, continua
-        posicao++;
-
-    ind.p.insert(ind.p.begin() + posicao, pa);//insere na posição correta
+void InsereEmOrdem(Indice &ind,Palavras pala){
+    int pos=0;
+    while(pos<ind.palavras.size() && (pala.letras > ind.palavras[pos].letras)){
+        pos++;
+    }
+    ind.palavras.insert(ind.palavras.begin() + pos, pala);
 }
 
-bool palavraexiste(string palavra, struct indice &ind){
-	//palavra existe na lista? 
-	for(int i=0; i<ind.p.size(); i++) {
-    	if (ind.p[i].letras==palavra){
-    		return true;
-		}
-	}
-	return false;
+bool ExisteOcorrencia(Indice ind,string p){
+    int i,j;
+    for(i=0;i<ind.palavras.size();i++){
+        if(ind.palavras[i].letras.compare(p)==0){
+            for(int j=0;j<ind.palavras[i].ocorrencias.size();j++){
+                if(ind.palavras[i].ocorrencias[j].arquivo==ind.arquivosLidos.size()){
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void NovaOcorrencia(Indice &ind,string pl,Ocorrencia oc){
+    int i;
+    for(i=0;i<ind.palavras.size();i++){
+        if(ind.palavras[i].letras.compare(pl)==0){
+            ind.palavras[i].ocorrencias.push_back(oc);
+        }
+    }
+}
+
+void AtualizaLinha(Indice &ind,string p,int linha){
+    int i,j;
+    for(i=0;i<ind.palavras.size();i++){
+        if(ind.palavras[i].letras.compare(p)==0){
+            for(int j=0;j<ind.palavras[i].ocorrencias.size();j++){
+                if(ind.palavras[i].ocorrencias[j].arquivo==ind.arquivosLidos.size()){
+                    ind.palavras[i].ocorrencias[j].linhas.push_back(linha);
+                }
+            }
+        }
+    }
 }
 
 string removepun(string palavra){
@@ -66,126 +92,218 @@ string removepun(string palavra){
     return palavra;
 }
 
-void processaLinha(struct indice &ind, string linha, int numLinha){
-	struct palavra pa;
-	stringstream ss(linha);
-	//para cada palavra
-	while(getline(ss, pa.letras, ' ')){
-		//cout << "palavra: " << palavra <<endl;
-		pa.letras = removepun(pa.letras); //remove pontuação
-		//verificar se pal existe
-		if (!palavraexiste(pa.letras, ind)){
-			//se n existir, inserir a nova palavra na lista de palavra do indice //inserir tb a primeira ocorrencia dessa palavra(size do vector)
-			inserepalavra(pa.letras, numLinha, ind);
-		} else {
-			//se existir, acrescentar nova ocorrencia a palavra
-			for (int i= 0; i < ind.p.size(); i++){
-    			if (ind.p[i].letras == pa.letras ){
-    				ind.p[i].oco.push_back(numLinha);
-    				break;
-				}
-			}
-		}
-	}
-}
+void ProcessaLinha(Indice &ind,string linha,int numL){
+     stringstream linhaLida(linha);
+     string palavra;
+     while(getline(linhaLida,palavra,' ')){
+        palavra=removepun(palavra); ///remove pontuação
+        if(!palavraexiste(ind,palavra)){ ///se n existir, inserir a nova palavra na lista de palavra do indice
+            Ocorrencia aux;
+            Palavras pl;
+            aux.arquivo=ind.arquivosLidos.size();
+            aux.linhas.push_back(numL);
+            pl.ocorrencias.push_back(aux);
+            pl.letras=palavra;
+            InsereEmOrdem(ind,pl);
+        }else{
+            if(!ExisteOcorrencia(ind,palavra)){ ///se a palavra n tiver um struct ocorrencia
+                Ocorrencia aux;
+                aux.linhas.push_back(numL);
+                aux.arquivo=ind.arquivosLidos.size();
+                NovaOcorrencia(ind,palavra,aux);
+            }else{
+                AtualizaLinha(ind,palavra,numL); ///se a palavra ja tiver um struct ocorrencia, adiciona uma nova linha
+            }
+        }
+     }
+ }
 
-bool pexiste(vector<string> arq, string palavra){
-    for (int i=0; i<arq.size(); i++)
-        if (arq[i] == palavra)
+bool FoiLido(string nomeArq,Indice ind){
+    int i;
+    for(i=0;i<ind.arquivosLidos.size();i++){
+        if(ind.arquivosLidos[i].compare(nomeArq)==0){
             return true;
+        }
+    }
     return false;
 }
 
-void processaarq(struct indice &ind){
-	//perguntar nome do arq txt
-	string nomeArq, linha;
-	cout << "Digite o nome do arquivo a ser processado:" << endl;
-    cin >> nomeArq;
-	//verificar se o arq n foi processado
-	if (!pexiste(ind.arq, nomeArq)){
-		//inserir nome do arq no indice
-		ind.arq.push_back(nomeArq);
-		//abrir arq
-		fstream arq(nomeArq, fstream::in);
-		//enquanto n acabou de ler
-		int numlinha = 0;
-		while(arq.eof()==0){
-			//ler uma linha
-			getline(arq, linha);
-			processaLinha(ind, linha, numlinha);
-			numlinha++;
-		}
-		//fechaarq
-		arq.close();
-	}
+void ProcessaArquivo(Indice &ind){
+    string nomeA;
+    cout<<"Digite o nome do arquivo: ";
+    cin>>nomeA;
+    if(!FoiLido(nomeA,ind)){ ///verificar se o arq n foi processado
+        ///abrir arq
+        fstream arq(nomeA,fstream::in);
+        if(!arq.is_open()){
+            cout<< "O arquivo "<<nomeA<<" nao foi encontrado."<<endl;
+        }else{
+            ind.arquivosLidos.push_back(nomeA);
+            string linha;
+            int numlinha=1;
+            while(!arq.eof()){
+                ///ler uma linha
+                getline(arq,linha);
+                ProcessaLinha(ind,linha,numlinha);
+                numlinha++;
+            }
+            arq.close();
+        }
+    }else{
+        cout<<"O arquivo "<<nomeA<<" ja foi lido"<<endl;
+    }
 }
 
-void escreveocorrencia(fstream &arq, struct ocorrencia oc){
-	//escreve o num do arq binario
-	//escreve as linhas onde a palavra apareceu no arq
+void SalvarIndice(Indice &ind){
+    if(ind.arquivosLidos.empty()){
+        cout<<"Indice vazio, nada para salvar."<<endl;
+    }else{
+        fstream Arq;
+        Arq.open("indice.dat",fstream::out|fstream::binary); ///abrir o arquivo em modo leitura
+        int totalArq,tamNomeArq,totalPalavras,tamLetrasP,ocorrenciaPalavra,numArq,qtdPalavrasArq,linhas;
+        totalArq=ind.arquivosLidos.size(); ///quantidade de arquivos processados
+        Arq.write((char*)&totalArq,sizeof(int));
+
+        for(int i=0;i<totalArq;i++){
+            tamNomeArq=ind.arquivosLidos[i].length() + 1; ///quantidade de letras do nome do arquivo +1
+            Arq.write((char*)&tamNomeArq,sizeof(int));
+            Arq.write(ind.arquivosLidos[i].c_str(),sizeof(char)*tamNomeArq); ///nome do arquivo
+        }
+        totalPalavras=ind.palavras.size(); ///quantidade de palavras diferentes que foram encontradas
+        Arq.write((char*)&totalPalavras,sizeof(int));
+
+        for(int i=0;i<totalPalavras;i++){
+            tamLetrasP=ind.palavras[i].letras.length() + 1; ///quantidade de letras da palavra +1
+            Arq.write((char*)&tamLetrasP,sizeof(int));
+            Arq.write(ind.palavras[i].letras.c_str(),sizeof(char)*tamLetrasP); ///letras da palavra
+            ocorrenciaPalavra=ind.palavras[i].ocorrencias.size(); ///quantidade de ocorrencias da palavra
+            Arq.write((char*)&ocorrenciaPalavra,sizeof(int));
+
+            for(int j=0;j<ocorrenciaPalavra;j++){
+                numArq=ind.palavras[i].ocorrencias[j].arquivo; ///numero do arquivo
+                qtdPalavrasArq=ind.palavras[i].ocorrencias[j].linhas.size(); ///quantidade de ocorrencias da palavra no arquivo
+                Arq.write((char*)&numArq,sizeof(int));
+                Arq.write((char*)&qtdPalavrasArq,sizeof(int));
+
+                for(int k=0;k<qtdPalavrasArq;k++){
+                    linhas=ind.palavras[i].ocorrencias[j].linhas[k]; ///linhas onde a palavra apareceu
+                    Arq.write((char*)&linhas,sizeof(int));
+                }
+            }
+        }
+        Arq.close();
+        cout<<"O indice foi salvo com sucesso."<<endl;
+    }
 }
 
-void escrevepalavra(fstream &arq, struct palavra pal){
-	//escreve no arq bin as letras da palavra
-	// para cada ocorrencia
-		escreveocorrencia(arq, pal.oco[j])
+void LiberaMemoria(Indice &ind){
+    ind.arquivosLidos.clear();
+    for(int i=0;i<ind.palavras.size();i++){
+        for(int j=0;j<ind.palavras[i].ocorrencias.size();j++){
+                ind.palavras[i].ocorrencias[j].linhas.clear();
+        }
+    }
+    ind.palavras.clear();
 }
 
-void escrevenomarq(fstream &arq, string nomearq){
-	//escrever a qtd de letras
-	//escreve as letras
+void LerIndice(Indice &ind){
+    if(!ind.arquivosLidos.empty()){
+        LiberaMemoria(ind);
+    }
+    fstream Arq;
+    Arq.open("indice.dat",fstream::in|fstream::binary);
+    int totalArq,tamNomeArq,totalPalavras,tamLetrasP,ocorrenciaPalavra,numArq,qtdPalavrasArq,linha;
+    string nomeArq;
+    Arq.read((char*)&totalArq,sizeof(int));
+
+    for(int i=0;i<totalArq;i++){
+        Arq.read((char*)&tamNomeArq,sizeof(int));
+        nomeArq.resize(tamNomeArq-1);
+        Arq.read(&nomeArq[0],sizeof(char)*tamNomeArq); ///nome do arquivo
+        ind.arquivosLidos.push_back(nomeArq);;
+    }
+    Arq.read((char*)&totalPalavras,sizeof(int));
+
+    for(int i=0;i<totalPalavras;i++){
+        Palavras plvAux;
+        Arq.read((char*)&tamLetrasP,sizeof(int));
+        plvAux.letras.resize(tamLetrasP-1);
+        Arq.read(&plvAux.letras[0],sizeof(char)*tamLetrasP);
+        Arq.read((char*)&ocorrenciaPalavra,sizeof(int));
+
+        for(int j=0;j<ocorrenciaPalavra;j++){
+            Ocorrencia ocrAux;
+            Arq.read((char*)&numArq,sizeof(int));
+            Arq.read((char*)&qtdPalavrasArq,sizeof(int));
+            ocrAux.arquivo=numArq;
+
+            for(int k=0;k<qtdPalavrasArq;k++){
+                Arq.read((char*)&linha,sizeof(int));
+                ocrAux.linhas.push_back(linha);
+            }
+            plvAux.ocorrencias.push_back(ocrAux);
+        }
+        ind.palavras.push_back(plvAux);
+    }
+    Arq.close();
+    cout<<"O indice foi lido com sucesso."<<endl;
 }
 
-void salvarindice(struct indice ind){
-	//abrir o arq bin
-	//escreve a qtd de arquivos
-	//para cada arq de ind.arquivos
-		escrevenomearq(arquivo, ind.arquivo[t]);
-	//escreve a qtd de palavras
-	//para cada palavra de ind.p
-		escrevepalavra(arquivo, ind.p[i]);
-	//fecha arq bin
-		
+void ImprimeLinhas(vector<int>l){
+    for(int i=0;i<l.size();i++){
+        cout<<l[i]<<" ";
+    }
 }
 
-void lerindice(struct indice &ind){
-	liberaind(ind);
-	//abrir arq bin
-	//ler a qtd de arqs no indice
-	//p cada arq
-		lenomearq(arq, ind);
-	//ler a qtd de palavras do indice
-	//p cada palavra
-		lepalavra(arq, ind);
-	//fechar o arq bin
+void ImprimeOcorrencias(vector<Ocorrencia>ocr){
+    int i;
+    for(i=0;i<ocr.size();i++){
+        cout<<"arq: "<<ocr[i].arquivo<<endl<<"aparicoes nesse arquivo: "<<ocr[i].linhas.size()<<endl<<"linhas: ";
+        ImprimeLinhas(ocr[i].linhas);
+        cout<<endl;
+    }
 }
 
-void mostraoco(struct palavra){
-	//p cada ocorrencia
+void ImprimeArqLidos(Indice ind){
+    int i;
+    for(i=0;i<ind.arquivosLidos.size();i++){
+        cout<<ind.arquivosLidos[i]<<"  ";
+    }
 }
 
-void mostrap(struct indice ind){
-	//p cada palavra no ind
-		//escreva a palavra na tela
-		mostraoco(ind.p[i]);
+void MostraIndice(Indice ind){
+    int i;
+    ImprimeArqLidos(ind);
+    cout<<endl<<endl<<endl;
+    for(i=0;i<ind.palavras.size();i++){
+        cout<<ind.palavras[i].letras<<" structs ocorrencias: "<<ind.palavras[i].ocorrencias.size()<<endl;
+        ImprimeOcorrencias(ind.palavras[i].ocorrencias);
+        cout<<endl;
+    }
 }
 
-void mostraind(struct indice ind){
-	mostranomarq(ind);
-	mostrap(ind);
+int Menu(){
+    int resp;
+    cout<<"[1] Processar arquvo"<<endl<<"[2] Salvar Indice"<<endl<<"[3] Ler Indice"<<endl<<"[4] Mostrar Indice atual"<<endl<<"[5] Encerrar"<<endl<<"Digite: ";
+    cin>>resp;
+    return resp;
 }
+
 int main(){
-	struct indice ind;
-	int op;
-	op = Menu();
-	while (op !=5){
-		switch(op){
-			case 1: processaarq(ind); break;
-			case 2: salvarindice(ind); break;
-			case 3: lerindice(ind); break;
-			case 4: mostraind(ind); break;
-		}
-		op = Menu();
-	}
-	liberaind(ind);
+	SetConsoleOutputCP(65001);
+    Indice ind;
+    int op;
+    op = Menu();
+    while(op!=5){
+        switch(op){
+            case 1: ProcessaArquivo(ind); system("pause"); break;
+            case 2: SalvarIndice(ind); system("pause"); break;
+            case 3: LerIndice(ind); system("pause"); break;
+            case 4: MostraIndice(ind); system("pause"); break;
+        }
+        system("cls");
+        op = Menu();
+    }
+    LiberaMemoria(ind);
+    return 0;
 }
